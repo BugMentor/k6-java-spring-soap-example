@@ -1,11 +1,10 @@
 # ============================================================
-#  Maven / Gradle
+#  Build output
 # ============================================================
 target/
-!.mvn/wrapper/maven-wrapper.jar
-!.mvn/wrapper/maven-wrapper.properties
-!**/src/main/**/target/
-!**/src/test/**/target/
+build/
+out/
+dist/
 *.class
 *.jar
 *.war
@@ -15,10 +14,27 @@ target/
 *.tar.gz
 *.rar
 dependency-reduced-pom.xml
-build/
-out/
+
+# ============================================================
+#  Maven
+# ============================================================
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ============================================================
+#  Gradle
+# ============================================================
 .gradle/
 buildSrc/build/
+
+# ============================================================
+#  Go
+# ============================================================
+*.exe
+*.test
+*.out
+scripts/data-generator/data-generator
+vendor/
 
 # ============================================================
 #  IDE - IntelliJ IDEA
@@ -28,7 +44,8 @@ buildSrc/build/
 *.ipr
 *.iws
 .idea_modules/
-out/
+*.ctxt
+.factorypath
 
 # ============================================================
 #  IDE - Eclipse / STS
@@ -39,6 +56,7 @@ out/
 .springBeans
 .sts4-cache
 bin/
+.apt_generated/
 
 # ============================================================
 #  IDE - VS Code
@@ -56,34 +74,16 @@ bin/
 # ============================================================
 nbproject/private/
 nbbuild/
-dist/
 nbdist/
 .nb-gradle/
 
 # ============================================================
-#  OS Generated Files
+#  OS generated files (macOS / Windows / Linux)
 # ============================================================
 .DS_Store
 .DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-*.swp
-*.swo
-*~
-\#*\#
-.\#*
-
-# ============================================================
-#  macOS
-# ============================================================
 .AppleDouble
 .LSOverride
-Icon
-._*
 .DocumentRevisions-V100
 .fseventsd
 .Spotlight-V100
@@ -91,30 +91,27 @@ Icon
 .Trashes
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
-
-# ============================================================
-#  Windows
-# ============================================================
+._*
+Icon?
+Desktop.ini
 $RECYCLE.BIN/
 Thumbs.db
 ehthumbs.db
-
-# ============================================================
-#  Linux
-# ============================================================
 *~
+\#*\#
+.\#*
 
 # ============================================================
 #  Logs
 # ============================================================
 *.log
 logs/
-log/
 *.log.*
-application.log
-spring.log
 hs_err_pid*
 replay_pid*
+*.hprof
+*.jfr
+*.pid
 
 # ============================================================
 #  Environment & Secrets
@@ -123,10 +120,6 @@ replay_pid*
 .env.*
 !.env.example
 !.env.sample
-*.env.local
-*.env.production
-*.env.staging
-*.env.development
 application-local.yml
 application-dev.yml
 application-prod.yml
@@ -144,6 +137,14 @@ secrets/
 credentials.json
 service-account.json
 google-credentials.json
+*.private.json
+
+# ============================================================
+#  Java version managers
+# ============================================================
+.java-version
+.tool-versions
+.sdkmanrc
 
 # ============================================================
 #  Database
@@ -163,15 +164,11 @@ google-credentials.json
 # ============================================================
 docker-compose.override.yml
 .docker/
-*.dockerignore.local
 
 # ============================================================
 #  Testcontainers
 # ============================================================
 .testcontainers*
-~/.testcontainers/
-.testcontainers.properties
-*.testcontainers.properties
 
 # ============================================================
 #  Kubernetes / Helm
@@ -183,12 +180,10 @@ kubeconfig
 .kube/
 
 # ============================================================
-#  Observability / OTEL
+#  OpenTelemetry
 # ============================================================
 opentelemetry-javaagent.jar
 otel/
-*.hprof
-*.jfr
 
 # ============================================================
 #  Coverage & Reports
@@ -205,9 +200,10 @@ coverage.xml
 site/
 jacoco.exec
 .jacoco/
+.nyc_output/
 
 # ============================================================
-#  Dependency / Package Management
+#  Package managers
 # ============================================================
 node_modules/
 .pnp
@@ -225,7 +221,7 @@ Gemfile.lock
 *.gem
 
 # ============================================================
-#  Temporary Files
+#  Temporary / Editor files
 # ============================================================
 tmp/
 temp/
@@ -235,19 +231,19 @@ temp/
 *.backup
 *.orig
 *.old
+*.swp
+*.swo
 .cache/
 
 # ============================================================
-#  Spec Kit (committed, not ignored)
+#  Spec Kit
 # ============================================================
-# .specify/ is committed as the source of truth
-# Only ignore transient/session files
 .specify/session/
 .specify/cache/
 
 # ============================================================
-#  Project-specific
+#  Misc
 # ============================================================
 *.diff
 *.patch
-postman/*.private.json
+.attach_pid*
