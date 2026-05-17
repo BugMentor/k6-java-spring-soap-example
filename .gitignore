@@ -1,0 +1,253 @@
+# ============================================================
+#  Maven / Gradle
+# ============================================================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+dependency-reduced-pom.xml
+build/
+out/
+.gradle/
+buildSrc/build/
+
+# ============================================================
+#  IDE - IntelliJ IDEA
+# ============================================================
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+out/
+
+# ============================================================
+#  IDE - Eclipse / STS
+# ============================================================
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache
+bin/
+
+# ============================================================
+#  IDE - VS Code
+# ============================================================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# ============================================================
+#  IDE - NetBeans
+# ============================================================
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# ============================================================
+#  OS Generated Files
+# ============================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+
+# ============================================================
+#  macOS
+# ============================================================
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# ============================================================
+#  Windows
+# ============================================================
+$RECYCLE.BIN/
+Thumbs.db
+ehthumbs.db
+
+# ============================================================
+#  Linux
+# ============================================================
+*~
+
+# ============================================================
+#  Logs
+# ============================================================
+*.log
+logs/
+log/
+*.log.*
+application.log
+spring.log
+hs_err_pid*
+replay_pid*
+
+# ============================================================
+#  Environment & Secrets
+# ============================================================
+.env
+.env.*
+!.env.example
+!.env.sample
+*.env.local
+*.env.production
+*.env.staging
+*.env.development
+application-local.yml
+application-dev.yml
+application-prod.yml
+*-local.yml
+*-dev.yml
+*-prod.yml
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+credentials.json
+service-account.json
+google-credentials.json
+
+# ============================================================
+#  Database
+# ============================================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+*.h2.db
+*.mv.db
+*.trace.db
+
+# ============================================================
+#  Docker
+# ============================================================
+docker-compose.override.yml
+.docker/
+*.dockerignore.local
+
+# ============================================================
+#  Testcontainers
+# ============================================================
+.testcontainers*
+~/.testcontainers/
+.testcontainers.properties
+*.testcontainers.properties
+
+# ============================================================
+#  Kubernetes / Helm
+# ============================================================
+*.tgz
+charts/
+helm/
+kubeconfig
+.kube/
+
+# ============================================================
+#  Observability / OTEL
+# ============================================================
+opentelemetry-javaagent.jar
+otel/
+*.hprof
+*.jfr
+
+# ============================================================
+#  Coverage & Reports
+# ============================================================
+coverage/
+*.cover
+*.cover.py
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.gcov
+*.lcov
+site/
+jacoco.exec
+.jacoco/
+
+# ============================================================
+#  Dependency / Package Management
+# ============================================================
+node_modules/
+.pnp
+.pnp.js
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+__pycache__/
+*.py[cod]
+*.egg-info/
+.python-version
+Pipfile.lock
+poetry.lock
+Gemfile.lock
+*.gem
+
+# ============================================================
+#  Temporary Files
+# ============================================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.old
+.cache/
+
+# ============================================================
+#  Spec Kit (committed, not ignored)
+# ============================================================
+# .specify/ is committed as the source of truth
+# Only ignore transient/session files
+.specify/session/
+.specify/cache/
+
+# ============================================================
+#  Project-specific
+# ============================================================
+*.diff
+*.patch
+postman/*.private.json

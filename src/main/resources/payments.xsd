@@ -1,0 +1,145 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="http://enterprise.com/payment-service"
+           targetNamespace="http://enterprise.com/payment-service" elementFormDefault="qualified">
+
+    <xs:element name="GetPaymentByIdRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="id" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetPaymentByIdResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="payment" type="tns:paymentSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="paymentSoapDto">
+        <xs:sequence>
+            <xs:element name="id" type="xs:string"/>
+            <xs:element name="customerId" type="xs:string"/>
+            <xs:element name="amount" type="xs:decimal"/>
+            <xs:element name="status" type="xs:string"/>
+            <xs:element name="createdAt" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ProcessPayment -->
+    <xs:element name="ProcessPaymentRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="userId" type="xs:string"/>
+                <xs:element name="merchantId" type="xs:string"/>
+                <xs:element name="amount" type="xs:decimal"/>
+                <xs:element name="type" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="ProcessPaymentResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="payment" type="tns:paymentSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- RefundPayment -->
+    <xs:element name="RefundPaymentRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="id" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="RefundPaymentResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="payment" type="tns:paymentSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- ListUserPayments -->
+    <xs:element name="ListUserPaymentsRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="userId" type="xs:string"/>
+                <xs:element name="status" type="xs:string" minOccurs="0"/>
+                <xs:element name="limit" type="xs:int" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="ListUserPaymentsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="payments" type="tns:paymentListSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="paymentListSoapDto">
+        <xs:sequence>
+            <xs:element name="payment" type="tns:paymentSoapDto" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- SearchPayments -->
+    <xs:element name="SearchPaymentsRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="minAmount" type="xs:decimal" minOccurs="0"/>
+                <xs:element name="maxAmount" type="xs:decimal" minOccurs="0"/>
+                <xs:element name="currency" type="xs:string" minOccurs="0"/>
+                <xs:element name="status" type="xs:string" minOccurs="0"/>
+                <xs:element name="page" type="xs:int" minOccurs="0"/>
+                <xs:element name="size" type="xs:int" minOccurs="0"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="SearchPaymentsResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="payments" type="tns:paymentListSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- GetPaymentSummary -->
+    <xs:element name="GetPaymentSummaryRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="startDate" type="xs:string"/>
+                <xs:element name="endDate" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="GetPaymentSummaryResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="entries" type="tns:summaryEntryListSoapDto"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="summaryEntryListSoapDto">
+        <xs:sequence>
+            <xs:element name="entry" type="tns:summaryEntrySoapDto" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="summaryEntrySoapDto">
+        <xs:sequence>
+            <xs:element name="status" type="xs:string"/>
+            <xs:element name="total" type="xs:decimal"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
