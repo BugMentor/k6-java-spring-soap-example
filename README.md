@@ -105,7 +105,7 @@ graph TD
             GRAFANA[Grafana Dashboard]
             TEMPO[Tempo Traces]
             LOKI[Loki Logs]
-            PROM[Prometheus Metrics]
+            MIMIR[Mimir Metrics]
         end
     end
 
@@ -113,7 +113,7 @@ graph TD
     SVC -->|JDBC + Hikari| PG
     OTEL -->|Export Traces| TEMPO
     OTEL -->|Export Logs| LOKI
-    OTEL -->|Export Metrics| PROM
+    OTEL -->|Export Metrics| MIMIR
 ```
 
 ### Service Details

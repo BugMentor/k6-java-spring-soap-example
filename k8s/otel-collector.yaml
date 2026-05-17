@@ -20,9 +20,10 @@ data:
         check_interval: 1s
         limit_mib: 512
     exporters:
-      prometheus:
-        endpoint: 0.0.0.0:8889
-        namespace: payment-service
+      otlphttp/mimir:
+        endpoint: http://mimir:9009/otlp
+        tls:
+          insecure: true
       otlp/tempo:
         endpoint: tempo:4317
         tls:
@@ -37,10 +38,10 @@ data:
           receivers: [otlp]
           processors: [memory_limiter, batch]
           exporters: [otlp/tempo]
-        metrics:
-          receivers: [otlp]
-          processors: [memory_limiter, batch]
-          exporters: [prometheus]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/mimir]
         logs:
           receivers: [otlp]
           processors: [memory_limiter, batch]

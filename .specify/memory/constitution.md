@@ -2,7 +2,7 @@
 
 ## 1. Mission
 
-Enterprise Payment Service — a production-grade, ACID-compliant payment platform that processes financial transactions with full observability.
+Enterprise Payment Service — a production-grade, ACID-compliant payment platform that processes financial transactions with full LGTM observability.
 
 ## 2. Non-Negotiable Principles
 
@@ -19,15 +19,18 @@ Enterprise Payment Service — a production-grade, ACID-compliant payment platfo
 ### Test-Driven Development
 - L0: Domain unit tests (pure Java, no mocks needed)
 - L1: Application use case tests (mocked ports)
-- L2: Integration tests (H2 in-memory database)
-- L3: Contract tests (Spring Cloud Contract + REST Assured)
+- L2: Integration tests (real PostgreSQL)
+- L3: API contract tests (REST Assured + Spring Boot)
 - 100% line and branch coverage enforced on domain and application layers (JaCoCo)
 
-### Full Observability
-- OpenTelemetry traces and metrics on every use case (`@WithSpan`)
+### Full LGTM Observability (Loki, Grafana, Tempo, Mimir)
+- **Mimir** — Metrics storage (Prometheus-compatible, PromQL). No standalone Prometheus server.
+- **Loki** — Log aggregation (LogQL)
+- **Tempo** — Distributed tracing (OTLP)
+- **Grafana** — Unified dashboards for all three signals
+- OpenTelemetry Collector as the single ingestion and routing pipeline
+- All metrics, traces, and logs flow through OTel Collector → LGTM backends
 - Structured logging with `trace_id` and `span_id` in every log line
-- OTLP gRPC export to Grafana LGTM stack
-- Prometheus metrics endpoint exposed via Actuator
 
 ### Spec-Driven Development
 - Every feature begins with a specification in `.specify/specs/`
@@ -41,11 +44,10 @@ Enterprise Payment Service — a production-grade, ACID-compliant payment platfo
 | Language | Java 17 |
 | Framework | Spring Boot 3.2.5 |
 | Build | Maven |
-| Database | PostgreSQL 16 (production), H2 (tests) |
-| Messaging | RabbitMQ (planned) |
-| Observability | OpenTelemetry, OTLP gRPC, Prometheus, Grafana, Loki, Tempo |
-| Testing | JUnit 5, Mockito, Testcontainers, REST Assured, Spring Cloud Contract |
-| Container | Docker, Kubernetes manifests in `k8s/` |
+| Database | PostgreSQL 16 (production), real PostgreSQL (tests) |
+| Observability | OpenTelemetry Collector, Mimir (metrics), Loki (logs), Tempo (traces), Grafana (dashboards) |
+| Testing | JUnit 5, Mockito, REST Assured, Spring Cloud Contract |
+| Container | Docker, KinD (Kubernetes in Docker) |
 
 ## 4. Git Workflow
 

@@ -1,6 +1,6 @@
 # LGTM Stack Installation via Helm
 
-To deploy the full observability stack in your Kubernetes cluster, run the following commands:
+To deploy the full LGTM observability stack in your Kubernetes cluster:
 
 ## 1. Add Grafana Helm Repository
 ```bash
@@ -23,13 +23,10 @@ helm upgrade --install tempo grafana/tempo \
   --set tempo.persistence.enabled=true
 ```
 
-## 4. Install Prometheus (Metrics)
+## 4. Install Mimir (Metrics)
 ```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-helm upgrade --install prometheus prometheus-community/prometheus \
-  --set server.persistentVolume.enabled=true \
-  --set server.persistentVolume.size=10Gi
+helm upgrade --install mimir grafana/mimir-distributed \
+  --set mimir.structure.monolithic=true
 ```
 
 ## 5. Install Grafana (Dashboard)
@@ -42,6 +39,6 @@ helm upgrade --install grafana grafana/grafana \
 
 ## 6. Configure Data Sources in Grafana
 Once Grafana is running, add the following endpoints as Data Sources:
-- **Prometheus**: `http://prometheus-server.default.svc.cluster.local`
+- **Mimir**: `http://mimir.default.svc.cluster.local:9009/prometheus`
 - **Loki**: `http://loki.default.svc.cluster.local:3100`
 - **Tempo**: `http://tempo.default.svc.cluster.local:3100`

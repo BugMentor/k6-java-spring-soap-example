@@ -49,7 +49,8 @@ Rationale: Separates concerns, enables independent testability of each layer, su
 - `@SpanAttribute` on key parameters (userId, amount, dates)
 - OTLP gRPC exporter to OpenTelemetry Collector (port 4317)
 - Logback pattern includes `trace_id` and `span_id` from MDC
-- Spring Boot Actuator exposes health, metrics, Prometheus endpoints
+- Spring Boot Actuator exposes health and metrics in OpenMetrics format (consumed by OTel Collector → Mimir)
+- Metrics exposed via `/actuator/prometheus` endpoint (Spring Boot convention for OpenMetrics format)
 
 ## Database
 
@@ -61,5 +62,5 @@ Rationale: Separates concerns, enables independent testability of each layer, su
 ## Deployment
 
 - Docker image built from `Dockerfile` (multi-stage)
-- `docker-compose.yaml` — full stack (app + PostgreSQL + OTel Collector + Grafana + Loki + Tempo + Prometheus)
+- `docker-compose.yaml` — full stack (app + PostgreSQL + OTel Collector + Grafana + Loki + Tempo + Mimir)
 - `k8s/` — Kubernetes manifests for production deployment

@@ -116,7 +116,7 @@ All errors returned as JSON with structure:
 - All use case `execute()` methods annotated with `@WithSpan`
 - Structured logs include `trace_id` and `span_id` via MDC
 - OTLP gRPC export to OpenTelemetry Collector
-- Actuator exposes all endpoints including health, metrics, prometheus
+- Actuator exposes all endpoints including health, metrics in OpenMetrics format (consumed by Mimir via OTel Collector)
 
 ## Testing Results
 
