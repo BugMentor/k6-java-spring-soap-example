@@ -7,8 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.enterprise.payment.application.usecase.*;
@@ -68,10 +66,10 @@ public abstract class BaseContractTest {
     @BeforeEach
     void setUp() {
         RestAssuredMockMvc.webAppContextSetup(context);
-        userRepository.deleteAll();
-        merchantRepository.deleteAll();
-        walletRepository.deleteAll();
         paymentRepository.deleteAll();
+        walletRepository.deleteAll();
+        merchantRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     protected String getBaseUrl() {

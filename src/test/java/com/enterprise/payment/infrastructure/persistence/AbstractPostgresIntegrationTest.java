@@ -4,39 +4,20 @@ import com.enterprise.payment.domain.model.Merchant;
 import com.enterprise.payment.domain.model.User;
 import com.enterprise.payment.domain.model.Wallet;
 import com.enterprise.payment.infrastructure.persistence.jpa.MerchantJpaRepository;
+import com.enterprise.payment.infrastructure.persistence.jpa.PaymentJpaRepository;
 import com.enterprise.payment.infrastructure.persistence.jpa.UserJpaRepository;
 import com.enterprise.payment.infrastructure.persistence.jpa.WalletJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
+@ActiveProfiles("test")
 public abstract class AbstractPostgresIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("payments")
-            .withUsername("user")
-            .withPassword("password");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.flyway.url", postgres::getJdbcUrl);
-        registry.add("spring.flyway.user", postgres::getUsername);
-        registry.add("spring.flyway.password", postgres::getPassword);
-    }
 
     @Autowired
     protected UserJpaRepository userJpaRepository;
@@ -44,6 +25,8 @@ public abstract class AbstractPostgresIntegrationTest {
     protected MerchantJpaRepository merchantJpaRepository;
     @Autowired
     protected WalletJpaRepository walletJpaRepository;
+    @Autowired
+    protected PaymentJpaRepository paymentJpaRepository;
 
     protected User testUser;
     protected Merchant testMerchant;
@@ -51,6 +34,7 @@ public abstract class AbstractPostgresIntegrationTest {
 
     @BeforeEach
     void seedData() {
+        paymentJpaRepository.deleteAll();
         walletJpaRepository.deleteAll();
         merchantJpaRepository.deleteAll();
         userJpaRepository.deleteAll();
