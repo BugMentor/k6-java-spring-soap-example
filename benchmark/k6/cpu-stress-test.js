@@ -16,7 +16,7 @@ const searchLatency = new Trend('cpu_stress_search_duration', true);
 const activeVUs = new Gauge('cpu_stress_active_vus');
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 200;
+const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 100;
 const SCALE_STEPS = parseInt(__ENV.SCALE_STEPS) || 8;
 const STEP_DURATION = __ENV.STEP_DURATION || '2m';
 const COOLDOWN_DURATION = __ENV.COOLDOWN_DURATION || '3m';

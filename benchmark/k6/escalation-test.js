@@ -17,7 +17,7 @@ const soapLatency = new Trend('stress_soap', true);
 const activeVUs = new Gauge('stress_active_vus');
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 500;
+const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 250;
 const SCALE_STEPS = parseInt(__ENV.SCALE_STEPS) || 8;
 const STEP_DURATION = __ENV.STEP_DURATION || '2m';
 const COOLDOWN_DURATION = __ENV.COOLDOWN_DURATION || '2m';

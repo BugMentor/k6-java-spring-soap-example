@@ -41,7 +41,7 @@
         "type": "query",
         "datasource": {
           "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
+          "uid": "PAE45454D0EDB9216"
         },
         "query": "label_values(up{app=\"payment-service\"}, instance)",
         "multi": true,

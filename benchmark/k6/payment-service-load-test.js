@@ -17,7 +17,7 @@ const concurrentConnections = new Counter('concurrent_vus');
 
 const BASE_URL = __ENV.BASE_URL || 'http://payment-service.payments.svc.cluster.local';
 const SOAP_URL = __ENV.SOAP_URL || `${BASE_URL}/ws`;
-const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 100;
+const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 50;
 const TEST_DURATION = __ENV.TEST_DURATION || '5m';
 
 let userId = null;

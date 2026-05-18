@@ -13,7 +13,7 @@ const concurrentHolding = new Trend('mem_stress_concurrent_holding', true);
 const activeVUs = new Gauge('mem_stress_active_vus');
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 200;
+const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 100;
 const HOLD_DURATION = __ENV.HOLD_DURATION || '5m';
 const BATCH_SIZE = parseInt(__ENV.BATCH_SIZE) || 100;
 

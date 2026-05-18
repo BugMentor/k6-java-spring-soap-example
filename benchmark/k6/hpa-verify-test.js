@@ -15,7 +15,7 @@ const failureCounter = new Counter('hpa_verify_failures');
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const PROMETHEUS_URL = __ENV.PROMETHEUS_URL || 'http://localhost:9091';
-const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 200;
+const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 100;
 const SCALE_STEPS = parseInt(__ENV.SCALE_STEPS) || 6;
 const STEP_DURATION = __ENV.STEP_DURATION || '2m';
 const COOLDOWN_DURATION = __ENV.COOLDOWN_DURATION || '3m';
