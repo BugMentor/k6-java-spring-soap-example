@@ -2,14 +2,15 @@ apiVersion: 1
 
 datasources:
   - name: Mimir
-    type: prometheus  # Mimir-native API (PromQL-compatible)
-    access: proxy
-    url: http://mimir:9009/prometheus
+    type: prometheus
+    access: direct
+    url: http://localhost:9009/prometheus
     isDefault: true
     editable: true
     jsonData:
-      timeInterval: 5s
-      httpMethod: POST
+      timeInterval: 10s
+      httpMethod: GET
+      queryTimeout: 30s
 
   - name: Loki
     type: loki
