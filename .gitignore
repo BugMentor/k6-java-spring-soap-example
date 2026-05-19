@@ -180,6 +180,12 @@ kubeconfig
 .kube/
 
 # ============================================================
+#  Benchmark results & Floci artifacts
+# ============================================================
+benchmark/k6/results/
+benchmark/floci/kubeconfig-*.yaml
+
+# ============================================================
 #  OpenTelemetry
 # ============================================================
 opentelemetry-javaagent.jar
