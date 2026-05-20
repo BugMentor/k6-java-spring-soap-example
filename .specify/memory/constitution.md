@@ -23,6 +23,13 @@ Enterprise Payment Service — a production-grade, ACID-compliant payment platfo
 - L3: API contract tests (REST Assured + Spring Boot)
 - 100% line and branch coverage enforced on domain and application layers (JaCoCo)
 
+### Pod Resource Limits — UNVIOLABLE
+- **Memory:** 512 MB per pod (requests and limits)
+- **CPU:** 1 core per pod (1000m requests and limits)
+- These limits are constitutional. No pod shall exceed 512 MB RAM or 1 CPU core.
+- The HPA shall enforce the escalation policy based on these hard limits.
+- Memory request = limit = 512Mi. CPU request = limit = 1000m.
+
 ### Full LGTM Observability (Loki, Grafana, Tempo, Mimir)
 - **Mimir** — Metrics storage (Prometheus-compatible, PromQL). No standalone Prometheus server.
 - **Loki** — Log aggregation (LogQL)
