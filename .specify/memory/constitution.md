@@ -64,3 +64,8 @@ Enterprise Payment Service — a production-grade, ACID-compliant payment platfo
 - Squash-merge PRs only
 - Never force-push to `main` or `develop`
 - Tag releases: `v<major>.<minor>.<patch>`
+
+### Deployment Replicas — UNVIOLABLE
+- **Minimum pods:** 2 (ALWAYS, under any circumstance)
+- **Maximum pods:** 30 (governed by HPA)
+- HPA minReplicas is permanently locked at 2. Never scale to 1 or 0.
