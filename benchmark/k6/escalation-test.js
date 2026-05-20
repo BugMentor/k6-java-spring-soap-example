@@ -26,7 +26,19 @@ let vusReached = 0;
 let lastRefuel = 0;
 
 export const options = {
-  stages: buildRampStages(TARGET_VUS, SCALE_STEPS, STEP_DURATION, COOLDOWN_DURATION),
+  scenarios: {
+    stress_test: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      stages: [
+        { duration: '30s', target: 1000 },
+        { duration: '1m', target: 5000 },
+        { duration: '2m', target: 10000 },
+        { duration: '1m', target: 10000 },
+        { duration: '30s', target: 0 },
+      ],
+    },
+  },
   thresholds: {
     'http_req_duration': ['p(95)<8000'],
     'stress_errors': ['rate<0.25'],
