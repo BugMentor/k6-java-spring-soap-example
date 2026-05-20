@@ -23,4 +23,5 @@ compactor:
   data_dir: /data/compactor
 
 limits:
-  max_global_series_per_user: 100000
+  max_global_series_per_user: 500000
+  compactor_blocks_retention_period: 0

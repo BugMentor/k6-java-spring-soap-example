@@ -31,11 +31,13 @@ export const options = {
       executor: 'ramping-vus',
       startVUs: 0,
       stages: [
-        { duration: '30s', target: 1000 },
-        { duration: '1m', target: 5000 },
-        { duration: '2m', target: 10000 },
-        { duration: '1m', target: 10000 },
-        { duration: '30s', target: 0 },
+        { duration: '2m', target: 500 },
+        { duration: '3m', target: 2000 },
+        { duration: '5m', target: 5000 },
+        { duration: '8m', target: 5000 },
+        { duration: '5m', target: 2000 },
+        { duration: '3m', target: 500 },
+        { duration: '4m', target: 0 },
       ],
     },
   },
@@ -190,7 +192,7 @@ export function handleSummary(data) {
       avgDuration: m.http_req_duration?.values?.avg || 0,
       p95: m.http_req_duration?.values?.['p(95)'] || 0,
       p99: m.http_req_duration?.values?.['p(99)'] || 0,
-      note: 'Check Grafana: CPU usage, JVM heap, Latency should escalate',
+      note: 'Check Grafana: http://localhost:3000 — CPU, JVM, Latency must ESCALATE',
     }),
   };
 }

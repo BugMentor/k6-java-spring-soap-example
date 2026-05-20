@@ -28,8 +28,8 @@ services:
     container_name: payment-service
     ports:
       - "8080:8080"
-    mem_limit: 2g
-    mem_reservation: 1g
+    mem_limit: 256m
+    mem_reservation: 128m
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
       SPRING_DATASOURCE_USERNAME: payment_user
@@ -39,7 +39,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
       OTEL_SERVICE_NAME: payment-service
       JVM_OPTS: >
-        -XX:InitialRAMPercentage=50.0 -XX:MaxRAMPercentage=75.0
+        -XX:InitialRAMPercentage=25.0 -XX:MaxRAMPercentage=40.0
         -XX:+UseZGC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=10
         -Djava.net.preferIPv4Stack=true
     depends_on:
@@ -74,7 +74,7 @@ services:
       - "9009:9009"
     volumes:
       - ./benchmark/lgtm/mimir.yaml:/etc/mimir.yaml:ro
-      - mimir_data:/data
+      - ./.data/mimir:/data
     restart: unless-stopped
 
   loki:
@@ -119,6 +119,5 @@ services:
 
 volumes:
   postgres_data:
-  mimir_data:
   tempo_data:
   grafana_data:

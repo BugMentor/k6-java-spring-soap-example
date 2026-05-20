@@ -95,7 +95,7 @@ spec:
             memory: "256Mi"
           limits:
             cpu: "1000m"
-            memory: "1024Mi"
+            memory: "256Mi"
         env:
         - name: SPRING_DATASOURCE_URL
           value: "jdbc:postgresql://postgres:5432/payments"

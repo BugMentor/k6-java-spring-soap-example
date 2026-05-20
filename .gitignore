@@ -164,6 +164,7 @@ google-credentials.json
 # ============================================================
 docker-compose.override.yml
 .docker/
+.data/
 
 # ============================================================
 #  Testcontainers
