@@ -34,11 +34,11 @@ spec:
         # ============================================================
         resources:
           requests:
-            cpu: "1000m"       # 1 core - guaranteed baseline
-            memory: "2Gi"     # 2Gi - request what you need
+            cpu: "1000m"       # 1 core - guaranteed baseline (constitutional)
+            memory: "1Gi"     # 1Gi - constitutional limit
           limits:
-            cpu: "2000m"      # 2 cores - prevents CPU throttling under load
-            memory: "4Gi"     # 4Gi - prevents OOMKilled
+            cpu: "1000m"       # 1 core - constitutional limit
+            memory: "1Gi"     # 1Gi - constitutional limit
         # ============================================================
         # JVM CONTAINER TUNING - CRITICAL FOR K8s
         # ============================================================
@@ -46,7 +46,7 @@ spec:
         - name: SPRING_PROFILES_ACTIVE
           value: "production"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:InitialRAMPercentage=50.0 -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+UseStringDeduplication -XX:+AlwaysPreTouch"
+          value: "-XX:InitialRAMPercentage=25.0 -XX:MaxRAMPercentage=50.0 -XX:+UseZGC -XX:+UseStringDeduplication -XX:+AlwaysPreTouch"
         - name: DB_URL
           value: "jdbc:postgresql://postgres-service:5432/payments"
         - name: DB_USERNAME

@@ -88,8 +88,8 @@
           },
           "targets": [
             {
-              "expr": "process_cpu_usage{app=\"payment-service\"} * 100",
-              "legendFormat": "CPU %",
+              "expr": "avg(process_cpu_usage{app=\"payment-service\"} * 100)",
+              "legendFormat": "Mean CPU %",
               "refId": "A",
               "exemplar": false
             },
@@ -138,15 +138,21 @@
           },
           "targets": [
             {
-              "expr": "jvm_memory_used_bytes{app=\"payment-service\",area=\"heap\"} / jvm_memory_max_bytes{app=\"payment-service\",area=\"heap\"} * 100",
-              "legendFormat": "Heap %",
+              "expr": "avg(jvm_memory_used_bytes{app=\"payment-service\",area=\"heap\"}) / avg(jvm_memory_max_bytes{app=\"payment-service\",area=\"heap\"}) * 100",
+              "legendFormat": "Mean Heap %",
               "refId": "A",
               "exemplar": false
             },
             {
               "expr": "60",
-              "legendFormat": "HPA Target (60%)",
+              "legendFormat": "RAM Upscale (60%)",
               "refId": "B",
+              "exemplar": false
+            },
+            {
+              "expr": "30",
+              "legendFormat": "RAM Downscale (30%)",
+              "refId": "C",
               "exemplar": false
             }
           ],
@@ -207,8 +213,14 @@
             },
             {
               "expr": "80",
-              "legendFormat": "HPA CPU Threshold (80%)",
+              "legendFormat": "CPU Upscale (80%)",
               "refId": "C",
+              "exemplar": false
+            },
+            {
+              "expr": "40",
+              "legendFormat": "CPU Downscale (40%)",
+              "refId": "D",
               "exemplar": false
             }
           ],
@@ -257,8 +269,14 @@
             },
             {
               "expr": "60",
-              "legendFormat": "Memory Threshold (60%)",
+              "legendFormat": "RAM Upscale (60%)",
               "refId": "B",
+              "exemplar": false
+            },
+            {
+              "expr": "30",
+              "legendFormat": "RAM Downscale (30%)",
+              "refId": "C",
               "exemplar": false
             }
           ],
@@ -362,6 +380,100 @@
               "min": 0,
               "color": {
                 "mode": "palette-classic"
+              }
+            }
+          },
+          "maxDataPoints": 300,
+          "interval": "10s"
+        }
+      ]
+    },
+    {
+      "title": "OOM & Cluster Resources",
+      "collapse": false,
+      "panels": [
+        {
+          "title": "OOM Kills (Memory Failures)",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 0, "w": 8, "h": 8 },
+          "targets": [
+            {
+              "expr": "container_memory_failures_total{container=\"payment-service\"}",
+              "legendFormat": "{{pod}}",
+              "refId": "A",
+              "exemplar": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            }
+          },
+          "maxDataPoints": 300,
+          "interval": "10s"
+        },
+        {
+          "title": "Mean Cluster CPU Usage",
+          "type": "timeseries",
+          "gridPos": { "x": 8, "y": 0, "w": 8, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total[5m])) by (node) / sum(machine_cpu_cores) by (node) * 100",
+              "legendFormat": "{{node}}",
+              "refId": "A",
+              "exemplar": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 60 },
+                  { "color": "red", "value": 80 }
+                ]
+              }
+            }
+          },
+          "maxDataPoints": 300,
+          "interval": "10s"
+        },
+        {
+          "title": "Mean Cluster RAM Usage",
+          "type": "timeseries",
+          "gridPos": { "x": 16, "y": 0, "w": 8, "h": 8 },
+          "targets": [
+            {
+              "expr": "sum(container_memory_working_set_bytes) by (node) / sum(machine_memory_bytes) by (node) * 100",
+              "legendFormat": "{{node}}",
+              "refId": "A",
+              "exemplar": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 60 },
+                  { "color": "red", "value": 85 }
+                ]
               }
             }
           },

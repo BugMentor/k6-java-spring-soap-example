@@ -1,3 +1,11 @@
+// ==========================================================================
+// SHARED UTILITIES — setup/teardown helpers for all k6 tests
+// ==========================================================================
+// Creates a test user, merchant, and wallet pre-funded with 9,999,999.99
+// so transaction-based tests don't run out of balance. Teardown cleans up
+// created entities. Also provides buildRampStages() for staged VU ramps
+// and printScalingBox() for pretty summary output.
+// ==========================================================================
 import http from 'k6/http';
 import { check } from 'k6';
 

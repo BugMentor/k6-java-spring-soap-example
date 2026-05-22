@@ -1,20 +1,21 @@
 // ==========================================================================
-// LOAD TEST — BASELINE BENCHMARKING
+// MAXIMUM CAPACITY / BREAKING POINT TEST
 // ==========================================================================
-// General-purpose configurable load test against all payment-service
-// endpoints (REST + SOAP). Uses realistic traffic distribution:
-//   35% wallet transfers, 20% payment creation, 15% SOAP processing,
-//   10% top-ups, 10% search, 10% get payments.
+// Pushes the payment-service to its absolute limit. Starts with 2 pods
+// (constitutional minimum, enforced by HPA minReplicas=2). Ramps VUs from
+// 0 → 5,000 over 15 minutes, then holds 5,000 VUs for 45 minutes.
+// Total test duration: 1 hour.
 //
-// HPA (Horizontal Pod Autoscaler) monitors CPU (80%) and memory (60%)
-// thresholds. Under light load (<200 VUs), HPA should maintain 2 pods
-// (constitutional minimum). Scaling triggers as VUs increase.
+// HPA (Horizontal Pod Autoscaler) will attempt to scale pods from 2 → 30
+// as CPU exceeds 80% and/or memory exceeds 60%. Even at 30 pods with 1Gi
+// RAM each, the system is expected to collapse under 5,000 concurrent VUs.
+// OOM kills and request timeouts are the expected outcome — the goal is to
+// find the breaking point.
 //
-// Default: 50 VUs, 5min. Override with TARGET_VUS and TEST_DURATION.
-// Run: k6 run -e BASE_URL=http://localhost:30080 -e TARGET_VUS=200 -e TEST_DURATION=10m benchmark/k6/payment-service-load-test.js
+// Run: k6 run -e BASE_URL=http://localhost:30080 benchmark/k6/max-capacity-test.js
 // ==========================================================================
 import http from 'k6/http';
-import { check, sleep, group } from 'k6';
+import { check, sleep } from 'k6';
 import { Rate, Trend, Counter } from 'k6/metrics';
 import {
   generateUUID,
@@ -32,8 +33,9 @@ const concurrentConnections = new Counter('concurrent_vus');
 
 const BASE_URL = __ENV.BASE_URL || 'http://payment-service.payments.svc.cluster.local';
 const SOAP_URL = __ENV.SOAP_URL || `${BASE_URL}/ws`;
-const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 50;
-const TEST_DURATION = __ENV.TEST_DURATION || '5m';
+const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 5000;
+const RAMP_DURATION = __ENV.RAMP_DURATION || '15m';
+const HOLD_DURATION = __ENV.HOLD_DURATION || '45m';
 
 let userId = null;
 let merchantId = null;
@@ -53,51 +55,39 @@ const SOAP_ENVELOPE_TEMPLATE = (userId, merchantId, amount, type) => `
   </soapenv:Body>
 </soapenv:Envelope>`;
 
-const SOAP_SEARCH_ENVELOPE = `
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-                  xmlns:pay="http://enterprise.com/payment-service">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <pay:SearchPaymentsRequest>
-      <pay:minAmount>1</pay:minAmount>
-      <pay:maxAmount>500</pay:maxAmount>
-      <pay:status>SUCCESS</pay:status>
-      <pay:page>0</pay:page>
-      <pay:size>10</pay:size>
-    </pay:SearchPaymentsRequest>
-  </soapenv:Body>
-</soapenv:Envelope>`;
-
 export const options = {
-  stages: [
-    { duration: '1m',  target: Math.floor(TARGET_VUS * 0.2) },
-    { duration: '2m',  target: Math.floor(TARGET_VUS * 0.5) },
-    { duration: '2m',  target: Math.floor(TARGET_VUS * 0.8) },
-    { duration: '3m',  target: TARGET_VUS },
-    { duration: '5m',  target: TARGET_VUS },
-    { duration: '2m',  target: 0 },
-  ],
+  scenarios: {
+    burn_it_down: {
+      executor: 'ramping-vus',
+      startVUs: 0,
+      gracefulRampDown: '30s',
+      stages: [
+        { duration: RAMP_DURATION, target: TARGET_VUS },
+        { duration: HOLD_DURATION, target: TARGET_VUS },
+        { duration: '1m', target: 0 },
+      ],
+    },
+  },
   thresholds: {
-    http_req_duration: ['p(95)<2000', 'p(99)<5000'],
-    http_req_failed: ['rate<0.05'],
-    wallet_transfer_latency: ['p(95)<3000'],
-    payment_create_latency: ['p(95)<2000'],
-    soap_process_payment_latency: ['p(95)<4000'],
+    http_req_duration: ['p(95)<5000', 'p(99)<10000'],
+    http_req_failed: ['rate<0.10'],
+    errors: ['rate<0.10'],
+    wallet_transfer_latency: ['p(95)<6000'],
+    payment_create_latency: ['p(95)<4000'],
+    soap_process_payment_latency: ['p(95)<8000'],
   },
   noConnectionReuse: false,
   batchPerHost: 20,
 };
 
 export function setup() {
-  return setupTestEntities(BASE_URL, 'load');
+  return setupTestEntities(BASE_URL, 'max-capacity');
 }
 
 export default function (data) {
   userId = data.userId;
   merchantId = data.merchantId;
   walletId = data.walletId;
-  const vuId = __VU;
-  const iterId = __ITER;
 
   const scenario = Math.random();
 
@@ -230,40 +220,43 @@ export function teardown(data) {
 }
 
 export function handleSummary(data) {
-  return {
-    'benchmark/k6/results/summary.json': JSON.stringify(data, null, 2),
-    'benchmark/k6/results/summary.txt': textSummary(data),
-  };
-}
+  const m = data.metrics;
+  const durationSec = (m.http_req_duration?.values?.count
+    ? (data.state?.testRunDurationMs / 1000).toFixed(0)
+    : 0);
 
-function textSummary(data) {
-  return `
-============================================================
-  K6 LOAD TEST RESULTS - Payment Service
-============================================================
-Target VUs: ${TARGET_VUS}
-Duration: ${TEST_DURATION}
-Base URL: ${BASE_URL}
+  const summary = `
+================================================================
+  K6 TP STRESS RESULTS - Payment Service
+================================================================
+Target VUs:         ${TARGET_VUS}
+Peak VUs:           ${m.vus_max?.values?.max || 0}
+Duration:           ${durationSec}s
+Ramp:               ${RAMP_DURATION} → ${HOLD_DURATION} hold
 
 HTTP Metrics:
-  Total Requests:      ${data.metrics.http_reqs?.values?.count || 0}
-  Failed Requests:     ${data.metrics.http_req_failed?.values?.passes || 0}
-  Error Rate:          ${((data.metrics.errors?.values?.rate || 0) * 100).toFixed(2)}%
-  Avg Response Time:   ${(data.metrics.http_req_duration?.values?.avg || 0).toFixed(2)}ms
-  P50:                 ${(data.metrics.http_req_duration?.values?.p(50) || 0).toFixed(2)}ms
-  P95:                 ${(data.metrics.http_req_duration?.values?.p(95) || 0).toFixed(2)}ms
-  P99:                 ${(data.metrics.http_req_duration?.values?.p(99) || 0).toFixed(2)}ms
-  Max:                 ${(data.metrics.http_req_duration?.values?.max || 0).toFixed(2)}ms
+  Total Requests:      ${m.http_reqs?.values?.count || 0}
+  Request Rate:        ${(m.http_reqs?.values?.rate || 0).toFixed(2)}/s
+  Failed:              ${m.http_req_failed?.values?.passes || 0}
+  Error Rate:          ${((m.http_req_failed?.values?.passes / (m.http_reqs?.values?.count || 1)) * 100).toFixed(2)}%
+  Avg Duration:        ${(m.http_req_duration?.values?.avg || 0).toFixed(2)}ms
+  P50:                 ${(m.http_req_duration?.values?.p(50) || 0).toFixed(2)}ms
+  P95:                 ${(m.http_req_duration?.values?.p(95) || 0).toFixed(2)}ms
+  P99:                 ${(m.http_req_duration?.values?.p(99) || 0).toFixed(2)}ms
+  Max:                 ${(m.http_req_duration?.values?.max || 0).toFixed(2)}ms
 
 Custom Metrics:
-  Wallet Transfer P95: ${(data.metrics.wallet_transfer_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  Payment Create P95:  ${(data.metrics.payment_create_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  SOAP Payment P95:    ${(data.metrics.soap_process_payment_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  Top Up P95:          ${(data.metrics.top_up_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  Search P95:          ${(data.metrics.search_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-
-Peak VUs:              ${data.metrics.vus_max?.values?.max || 0}
-Peak Iterations/s:     ${(data.metrics.iterations?.values?.rate || 0).toFixed(2)}
-============================================================
+  Wallet Transfer P95: ${(m.wallet_transfer_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Payment Create P95:  ${(m.payment_create_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  SOAP Payment P95:    ${(m.soap_process_payment_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Top Up P95:          ${(m.top_up_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Search P95:          ${(m.search_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+================================================================
 `;
+
+  return {
+    'benchmark/k6/results/max-capacity_summary.json': JSON.stringify(data, null, 2),
+    'benchmark/k6/results/max-capacity_summary.txt': summary,
+    stdout: summary,
+  };
 }

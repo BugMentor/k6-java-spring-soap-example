@@ -27,6 +27,28 @@ log_step() {
     echo -e "  ${GREEN}→${NC} $1"
 }
 
+scale_to_two() {
+    log_section "SCALING TO 2 PODS (CONSTITUTIONAL MINIMUM)"
+    log_step "Scaling deployment to replicas=2..."
+    kubectl scale deployment/payment-service --replicas=2 -n payments
+
+    log_step "Waiting for HPA to respect minReplicas=2 and pods to be ready..."
+    local waited=0
+    while [ $waited -lt 120 ]; do
+        local ready=$(kubectl get pods -n payments -l app=payment-service --field-selector=status.phase=Running -o jsonpath='{.items[?(@.status.containerStatuses[0].ready==true)].metadata.name}' 2>/dev/null | wc -w)
+        local total=$(kubectl get pods -n payments -l app=payment-service --no-headers 2>/dev/null | wc -l)
+        if [ "$ready" -ge 2 ] && [ "$total" -le 3 ]; then
+            echo -e "  ${GREEN}✓${NC} 2 pods ready (total: ${total})"
+            sleep 5
+            return 0
+        fi
+        sleep 5
+        waited=$((waited + 5))
+    done
+    echo -e "  ${YELLOW}⚠${NC} Timeout waiting for 2 pods. Proceeding anyway..."
+    return 1
+}
+
 run_test() {
     local name="$1"
     local script="$2"
@@ -62,69 +84,53 @@ COMMAND="${1:-all}"
 case "$COMMAND" in
     all)
         log_section "FULL SCALING TEST SUITE"
-        log_step "HPA thresholds: CPU > 80% | Memory > 60%"
-        log_step "Grafana:  http://localhost:3002 (admin/admin)"
+        log_step "HPA thresholds: CPU > 80% | Memory > 80%"
+        log_step "Grafana:  http://localhost:3000 (admin/admin)"
         log_step "Base URL: ${BASE_URL}"
         echo ""
 
+        scale_to_two
         run_test "cpu-stress" "cpu-stress-test.js"
         echo ""
+        scale_to_two
         run_test "memory-stress" "memory-stress-test.js"
         echo ""
-        run_test "combined-stress" "combined-stress-test.js"
-        echo ""
-        run_test "hpa-verify" "hpa-verify-test.js"
+        scale_to_two
+        run_test "max-capacity" "max-capacity-test.js"
 
         log_section "ALL TESTS COMPLETE"
         echo -e "  Results: ${RESULTS_DIR}/${TIMESTAMP}_*"
-        echo -e "  ${BOLD}Grafana: http://localhost:3002${NC} → Payment Service Dashboard"
-        echo -e "  ${BOLD}Prometheus: http://localhost:9091${NC} → Verify HPA metrics"
+        echo -e "  ${BOLD}Grafana: http://localhost:3000${NC} → Payment Service Dashboard"
         ;;
 
     cpu)
+        scale_to_two
         run_test "cpu-stress" "cpu-stress-test.js"
         ;;
 
     mem)
+        scale_to_two
         run_test "memory-stress" "memory-stress-test.js"
         ;;
 
-    combined)
-        run_test "combined-stress" "combined-stress-test.js"
-        ;;
-
-    verify)
-        run_test "hpa-verify" "hpa-verify-test.js"
+    tp)
+        scale_to_two
+        run_test "max-capacity" "max-capacity-test.js"
         ;;
 
     load)
+        scale_to_two
         run_test "load" "payment-service-load-test.js" "-e TARGET_VUS=${VUS:-200} -e TEST_DURATION=${DURATION:-10m}"
         ;;
 
-    status)
-        echo "Checking scaling status..."
-        if curl -s "${PROMETHEUS_URL}/api/v1/query?query=kube_deployment_status_replicas" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for r in data.get('data',{}).get('result',[]):
-    print(f\"  {r['metric'].get('deployment','?')}: {r['value'][1]} replicas\")
-" 2>/dev/null; then
-            echo ""
-        else
-            echo "  Prometheus not reachable at ${PROMETHEUS_URL}"
-        fi
-        ;;
-
     *)
-        echo "Usage: $0 {all|cpu|mem|combined|verify|load|status}"
+        echo "Usage: $0 {all|cpu|mem|tp|load}"
         echo ""
-        echo "  all      — Run full scaling test suite (CPU + Memory + Combined + Verify)"
-        echo "  cpu      — CPU stress test (triggers HPA at CPU > 80%)"
-        echo "  mem      — Memory stress test (triggers HPA at Memory > 60%)"
-        echo "  combined — CPU + Memory stress simultaneously"
-        echo "  verify   — HPA verification test (checks pod count via Prometheus)"
-        echo "  load     — General load test for comparison benchmarking"
-        echo "  status   — Check current HPA/pod status"
+        echo "  all   — Run full suite (CPU stress + Memory stress + Max Capacity)"
+        echo "  cpu   — CPU stress test (triggers HPA at CPU > 80%)"
+        echo "  mem   — Memory stress test (triggers HPA at Memory > 60%)"
+        echo "  tp    — Max capacity test (5,000 VUs, 15min ramp, 1h total)"
+        echo "  load  — General load test for baseline benchmarking"
         echo ""
         echo "Environment:"
         echo "  BASE_URL        = ${BASE_URL}"

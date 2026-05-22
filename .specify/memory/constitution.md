@@ -24,11 +24,11 @@ Enterprise Payment Service — a production-grade, ACID-compliant payment platfo
 - 100% line and branch coverage enforced on domain and application layers (JaCoCo)
 
 ### Pod Resource Limits — UNVIOLABLE
-- **Memory:** 512 MB per pod (requests and limits)
+- **Memory:** 1 GiB per pod (requests and limits)
 - **CPU:** 1 core per pod (1000m requests and limits)
-- These limits are constitutional. No pod shall exceed 512 MB RAM or 1 CPU core.
+- These limits are constitutional. No pod shall exceed 1 GiB RAM or 1 CPU core.
 - The HPA shall enforce the escalation policy based on these hard limits.
-- Memory request = limit = 512Mi. CPU request = limit = 1000m.
+- Memory request = limit = 1Gi. CPU request = limit = 1000m.
 
 ### Full LGTM Observability (Loki, Grafana, Tempo, Mimir)
 - **Mimir** — Metrics storage (Prometheus-compatible, PromQL). No standalone Prometheus server.
@@ -69,3 +69,24 @@ Enterprise Payment Service — a production-grade, ACID-compliant payment platfo
 - **Minimum pods:** 2 (ALWAYS, under any circumstance)
 - **Maximum pods:** 30 (governed by HPA)
 - HPA minReplicas is permanently locked at 2. Never scale to 1 or 0.
+
+### HPA Scaling Thresholds — IRON LAW
+
+These thresholds govern ALL horizontal pod autoscaling. They are constitutional and shall never be modified.
+
+**UPSCALE** (either condition triggers):
+- Mean CPU usage across all pods **greater than 80%**
+- Mean RAM usage across all pods **greater than 60%**
+
+**DOWNSCALE** (either condition triggers):
+- Mean CPU usage across all pods **lower than 40%**
+- Mean RAM usage across all pods **lower than 30%**
+
+These are the ONLY valid thresholds. Any deviation is a constitutional violation.
+
+| Direction | Condition | Threshold |
+|-----------|-----------|-----------|
+| UPSCALE | CPU | > 80% |
+| UPSCALE | RAM | > 60% |
+| DOWNSCALE | CPU | < 40% |
+| DOWNSCALE | RAM | < 30% |

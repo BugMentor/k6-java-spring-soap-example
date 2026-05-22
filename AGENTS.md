@@ -95,6 +95,26 @@ L0: Domain Tests (pure unit tests)             ← Core business rules
 
 ---
 
+## Deployment Replicas — UNVIOLABLE
+
+- **Minimum pods:** 2 (ALWAYS, under any circumstance. AT TEST STARTUP SHOULD BE EXACTLY = 2 PODS)
+- **Maximum pods:** 30 (governed by HPA)
+- HPA minReplicas is permanently locked at 2. Never scale to 1 or 0.
+- When deploying locally or in any environment, always start with exactly 2 replicas.
+
+### HPA Scaling Thresholds — IRON LAW
+
+| Direction | Metric | Threshold |
+|-----------|--------|-----------|
+| UPSCALE | CPU | > 80% |
+| UPSCALE | RAM | > 60% |
+| DOWNSCALE | CPU | < 40% |
+| DOWNSCALE | RAM | < 30% |
+
+These thresholds are constitutional. Never modify them. Every k6 test must start with exactly 2 pods.
+
+---
+
 ## Clean Architecture Rules
 
 1. **Domain layer** (`src/main/java/.../domain/`) — Entities, value objects, domain services. ZERO framework annotations. Pure Java.

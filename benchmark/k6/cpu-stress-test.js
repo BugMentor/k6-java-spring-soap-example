@@ -1,3 +1,16 @@
+// ==========================================================================
+// CPU STRESS — HPA CPU SCALING TEST
+// ==========================================================================
+// Targets the CPU-based HPA (Horizontal Pod Autoscaler) threshold at 80%.
+// HPA is a Kubernetes controller that automatically scales pod replicas
+// based on observed resource utilization. This test drives CPU usage via
+// batch operations, wallet transfers, SOAP calls, and report generation
+// to trigger the CPU > 80% scaling rule. Expect pods to scale from 2 to
+// higher counts as VUs ramp.
+//
+// Default: 100 VUs, 8 ramp steps. Override with TARGET_VUS, SCALE_STEPS.
+// Run: k6 run -e BASE_URL=http://localhost:30080 -e TARGET_VUS=500 benchmark/k6/cpu-stress-test.js
+// ==========================================================================
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend, Gauge } from 'k6/metrics';

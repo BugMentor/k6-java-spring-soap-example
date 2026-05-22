@@ -1,3 +1,18 @@
+// ==========================================================================
+// MEMORY STRESS — HPA MEMORY SCALING + OOM TEST
+// ==========================================================================
+// Targets the memory-based HPA (Horizontal Pod Autoscaler) threshold at 60%.
+// HPA is a Kubernetes controller that automatically scales pod replicas
+// based on observed resource utilization. This test drives JVM heap usage
+// via large batch operations, oversized payloads with metadata padding,
+// concurrent holding patterns, and list-all queries. HPA triggers when
+// average memory across pods exceeds 60% of the 1GiB constitutional limit.
+// Sustained hold phase may trigger OOM (Out Of Memory) kills when pods
+// exhaust their 1GiB RAM limit, visible in the OOM Kills Grafana panel.
+//
+// Default: 100 VUs, 5min hold. Override with TARGET_VUS, HOLD_DURATION.
+// Run: k6 run -e BASE_URL=http://localhost:30080 -e TARGET_VUS=200 benchmark/k6/memory-stress-test.js
+// ==========================================================================
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend, Gauge } from 'k6/metrics';

@@ -32,16 +32,16 @@ spec:
           protocol: TCP
         resources:
           requests:
-            cpu: "500m"
+            cpu: "1000m"
             memory: "1Gi"
           limits:
-            cpu: "2000m"
-            memory: "4Gi"
+            cpu: "1000m"
+            memory: "1Gi"
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "production"
         - name: JAVA_TOOL_OPTIONS
-          value: "-XX:InitialRAMPercentage=50.0 -XX:MaxRAMPercentage=75.0 -XX:+UseZGC -XX:+UseStringDeduplication -XX:+AlwaysPreTouch"
+          value: "-XX:InitialRAMPercentage=25.0 -XX:MaxRAMPercentage=50.0 -XX:+UseZGC -XX:+UseStringDeduplication -XX:+AlwaysPreTouch"
         - name: DB_URL
           value: "jdbc:postgresql://postgres-service:5432/payments"
         - name: DB_USERNAME
