@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Grafana-LGTM-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana LGTM">
 </p>
 
-Java 21 + Spring Boot 3.2 ACID-compliant payment platform with REST and SOAP endpoints. Full LGTM observability (Loki, Grafana, Tempo, Mimir), Clean Architecture, TDD, and OpenTelemetry instrumentation. Auto-scales on Kubernetes via HPA.
+Java 21 + Spring Boot 3.2 ACID-compliant payment platform with SOAP endpoints. Full LGTM observability (Loki, Grafana, Tempo, Mimir), Clean Architecture, TDD, and OpenTelemetry instrumentation. Auto-scales on Kubernetes via HPA.
 
 ---
 
@@ -135,7 +135,6 @@ graph LR
 ```mermaid
 graph TD
     subgraph Presentation["PRESENTATION LAYER"]
-        REST["REST Controllers (/v1/)"]
         SOAP["SOAP Endpoint (/ws)"]
     end
     subgraph Application["APPLICATION LAYER"]
@@ -159,7 +158,7 @@ graph TD
 - **Domain** — Zero framework annotations. Pure Java entities and business rules.
 - **Application** — Use cases orchestrate domain logic. Depends ONLY on domain.
 - **Infrastructure** — JPA repositories, HikariCP connection pool (max 50), external adapters.
-- **Presentation** — REST controllers and SOAP web service endpoint.
+- **Presentation** — SOAP web service endpoint.
 
 ---
 
@@ -228,23 +227,6 @@ k6 run -e BASE_URL=http://localhost:30080 benchmark/k6/payment-service-load-test
 
 ## API Endpoints
 
-### REST (`/v1/`)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST/GET/DELETE | `/users` | User CRUD |
-| POST/GET/DELETE | `/merchants` | Merchant CRUD |
-| POST/GET/DELETE | `/wallets` | Wallet CRUD |
-| POST | `/payments` | Create payment |
-| POST | `/payments/batch` | Batch create payments |
-| POST | `/payments/wallet-transfer` | Transfer between wallet and merchant |
-| POST | `/payments/wallets/{id}/topup` | Add funds to wallet |
-| PUT | `/payments/{id}/refund` | Refund a payment |
-| GET | `/payments/{id}` | Get payment by ID |
-| GET | `/payments/user/{userId}` | List user's payments |
-| GET | `/payments/search` | Search payments with filters |
-| GET | `/payments/reports/summary` | Aggregate payment summary |
-
 ### SOAP (`/ws`)
 
 | Operation | Description |
@@ -272,7 +254,7 @@ All tests live in `benchmark/k6/`. Purpose-annotated with HPA/OOM behavior expec
 | `memory-stress-test.js` | 100 (configurable) | ~11min | Memory HPA + OOM trigger. Large payloads, sustained hold. |
 
 ### Shared utility: `_shared.js`
-Provides `setupTestEntities` (creates user, merchant, wallet, funds it), `teardownTestEntities`, `buildRampStages`, and `printScalingBox`.
+Exports pre-seeded UUID constants (`SEED_USER_ID`, `SEED_MERCHANT_ID`, `SEED_WALLET_ID`). The database is seeded with known entities on application startup by `DataSeeder` (located in `infrastructure/persistence/`) — no k6 setup/teardown needed.
 
 ### Running Tests
 
@@ -325,7 +307,7 @@ Available at `http://localhost:3000` → **"Payment Service - Real-Time Monitori
 | L0 | Domain unit tests | 7 | Pure Java, no mocks. Entities, validation, business rules. |
 | L1 | Application use case tests | 9 | Mocked ports. Use case orchestration. |
 | L2 | Integration tests | 6 | Real PostgreSQL (no H2, no Testcontainers). |
-| L3 | API contract tests | 4 | REST Assured + Spring Boot. Full endpoint contracts. |
+| L3 | API contract tests | 4 | Spring Boot WebTestClient. Full endpoint contracts. |
 
 100% line and branch coverage enforced on domain and application layers via JaCoCo.
 
@@ -398,6 +380,7 @@ graph TD
 │   └── specs/
 ├── src/
 │   ├── main/java/             # Application source (domain, application, infra, presentation)
+│   │                           # DataSeeder pre-seeds test entities at startup
 │   └── test/java/             # L0-L3 tests (real PostgreSQL)
 ├── benchmark/
 │   ├── k6/                    # 4 load test scripts + shared utilities

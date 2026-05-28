@@ -1,72 +1,38 @@
-// ==========================================================================
-// LOAD TEST — BASELINE BENCHMARKING
-// ==========================================================================
-// General-purpose configurable load test against all payment-service
-// endpoints (REST + SOAP). Uses realistic traffic distribution:
-//   35% wallet transfers, 20% payment creation, 15% SOAP processing,
-//   10% top-ups, 10% search, 10% get payments.
-//
-// HPA (Horizontal Pod Autoscaler) monitors CPU (80%) and memory (60%)
-// thresholds. Under light load (<200 VUs), HPA should maintain 2 pods
-// (constitutional minimum). Scaling triggers as VUs increase.
-//
-// Default: 50 VUs, 5min. Override with TARGET_VUS and TEST_DURATION.
-// Run: k6 run -e BASE_URL=http://localhost:30080 -e TARGET_VUS=200 -e TEST_DURATION=10m benchmark/k6/payment-service-load-test.js
-// ==========================================================================
 import http from 'k6/http';
-import { check, sleep, group } from 'k6';
-import { Rate, Trend, Counter } from 'k6/metrics';
-import {
-  generateUUID,
-  setupTestEntities,
-  teardownTestEntities,
-} from './_shared.js';
+import { check } from 'k6';
+import { Rate, Trend } from 'k6/metrics';
+import { SEED_USER_ID, SEED_MERCHANT_ID } from './_shared.js';
 
 const errorRate = new Rate('errors');
-const walletTransferLatency = new Trend('wallet_transfer_latency', true);
-const paymentCreateLatency = new Trend('payment_create_latency', true);
 const soapProcessPaymentLatency = new Trend('soap_process_payment_latency', true);
-const topUpLatency = new Trend('top_up_latency', true);
-const searchLatency = new Trend('search_latency', true);
-const concurrentConnections = new Counter('concurrent_vus');
+const soapGetPaymentLatency = new Trend('soap_get_payment_latency', true);
+const soapListPaymentsLatency = new Trend('soap_list_payments_latency', true);
+const soapSearchLatency = new Trend('soap_search_latency', true);
+const soapSummaryLatency = new Trend('soap_summary_latency', true);
+const soapRefundLatency = new Trend('soap_refund_latency', true);
 
 const BASE_URL = __ENV.BASE_URL || 'http://payment-service.payments.svc.cluster.local';
 const SOAP_URL = __ENV.SOAP_URL || `${BASE_URL}/ws`;
 const TARGET_VUS = parseInt(__ENV.TARGET_VUS) || 50;
 const TEST_DURATION = __ENV.TEST_DURATION || '5m';
 
-let userId = null;
-let merchantId = null;
-let walletId = null;
+const NAMESPACE = 'http://enterprise.com/payment-service';
 
-const SOAP_ENVELOPE_TEMPLATE = (userId, merchantId, amount, type) => `
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-                  xmlns:pay="http://enterprise.com/payment-service">
+function soapEnvelope(bodyContent) {
+  return `<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pay="${NAMESPACE}">
   <soapenv:Header/>
   <soapenv:Body>
-    <pay:ProcessPaymentRequest>
-      <pay:userId>${userId}</pay:userId>
-      <pay:merchantId>${merchantId}</pay:merchantId>
-      <pay:amount>${amount}</pay:amount>
-      <pay:type>${type}</pay:type>
-    </pay:ProcessPaymentRequest>
+    ${bodyContent}
   </soapenv:Body>
 </soapenv:Envelope>`;
+}
 
-const SOAP_SEARCH_ENVELOPE = `
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
-                  xmlns:pay="http://enterprise.com/payment-service">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <pay:SearchPaymentsRequest>
-      <pay:minAmount>1</pay:minAmount>
-      <pay:maxAmount>500</pay:maxAmount>
-      <pay:status>SUCCESS</pay:status>
-      <pay:page>0</pay:page>
-      <pay:size>10</pay:size>
-    </pay:SearchPaymentsRequest>
-  </soapenv:Body>
-</soapenv:Envelope>`;
+function sendSoap(bodyContent, tags) {
+  return http.post(SOAP_URL, soapEnvelope(bodyContent), {
+    headers: { 'Content-Type': 'text/xml;charset=UTF-8', 'SOAPAction': '' },
+    tags,
+  });
+}
 
 export const options = {
   stages: [
@@ -80,8 +46,6 @@ export const options = {
   thresholds: {
     http_req_duration: ['p(95)<2000', 'p(99)<5000'],
     http_req_failed: ['rate<0.05'],
-    wallet_transfer_latency: ['p(95)<3000'],
-    payment_create_latency: ['p(95)<2000'],
     soap_process_payment_latency: ['p(95)<4000'],
   },
   noConnectionReuse: false,
@@ -89,144 +53,123 @@ export const options = {
 };
 
 export function setup() {
-  return setupTestEntities(BASE_URL, 'load');
+  return { userId: SEED_USER_ID, merchantId: SEED_MERCHANT_ID };
 }
 
 export default function (data) {
-  userId = data.userId;
-  merchantId = data.merchantId;
-  walletId = data.walletId;
-  const vuId = __VU;
-  const iterId = __ITER;
-
+  const { userId, merchantId } = data;
   const scenario = Math.random();
 
   if (scenario < 0.35) {
-    restWalletTransfer();
+    soapProcessPayment(userId, merchantId);
   } else if (scenario < 0.55) {
-    restCreatePayment();
+    soapListUserPayments(userId);
   } else if (scenario < 0.70) {
-    soapProcessPayment();
+    soapSearchPayments();
   } else if (scenario < 0.80) {
-    restTopUp();
+    soapGetPaymentSummary();
   } else if (scenario < 0.90) {
-    restSearch();
+    soapGetPaymentById();
   } else {
-    restGetPayment();
+    soapRefundPayment();
   }
 }
 
-function restWalletTransfer() {
-  const amount = (Math.random() * 190 + 10).toFixed(2);
-  const payload = JSON.stringify({
-    walletId: walletId,
-    merchantId: merchantId,
-    amount: parseFloat(amount)
-  });
-
-  const start = Date.now();
-  const res = http.post(`${BASE_URL}/v1/payments/wallet-transfer`, payload, {
-    headers: { 'Content-Type': 'application/json' },
-    tags: { name: 'wallet_transfer' }
-  });
-
-  walletTransferLatency.add(Date.now() - start);
-  errorRate.add(res.status !== 200);
-  concurrentConnections.add(1, { vus: __VU });
-
-  check(res, {
-    'wallet transfer status 200': r => r.status === 200,
-  });
+function extractPaymentId(xml) {
+  const match = xml.match(/<pay:id[^>]*>([^<]+)<\/pay:id>/);
+  return match ? match[1] : null;
 }
 
-function restCreatePayment() {
-  const amount = (Math.random() * 100 + 1).toFixed(2);
-  const payload = JSON.stringify({
-    userId: userId,
-    merchantId: merchantId,
-    amount: parseFloat(amount),
-    type: 'DEBIT'
-  });
+let lastPaymentId = null;
 
-  const start = Date.now();
-  const res = http.post(`${BASE_URL}/v1/payments`, payload, {
-    headers: { 'Content-Type': 'application/json' },
-    tags: { name: 'create_payment' }
-  });
-
-  paymentCreateLatency.add(Date.now() - start);
-  errorRate.add(res.status !== 201);
-
-  check(res, {
-    'create payment status 201': r => r.status === 201,
-  });
-}
-
-function soapProcessPayment() {
+function soapProcessPayment(userId, merchantId) {
   const amount = (Math.random() * 50 + 1).toFixed(2);
-  const envelope = SOAP_ENVELOPE_TEMPLATE(userId, merchantId, amount, 'DEBIT');
+  const body = `<pay:ProcessPaymentRequest>
+    <pay:userId>${userId}</pay:userId>
+    <pay:merchantId>${merchantId}</pay:merchantId>
+    <pay:amount>${amount}</pay:amount>
+    <pay:type>DEBIT</pay:type>
+  </pay:ProcessPaymentRequest>`;
 
   const start = Date.now();
-  const res = http.post(SOAP_URL, envelope, {
-    headers: {
-      'Content-Type': 'text/xml;charset=UTF-8',
-      'SOAPAction': ''
-    },
-    tags: { name: 'soap_process_payment' }
-  });
-
+  const res = sendSoap(body, { name: 'soap_process_payment' });
   soapProcessPaymentLatency.add(Date.now() - start);
   errorRate.add(res.status !== 200);
+  check(res, { 'soap process payment ok': r => r.status === 200 });
 
-  check(res, {
-    'soap payment status 200': r => r.status === 200,
-  });
+  const pid = extractPaymentId(res.body);
+  if (pid) lastPaymentId = pid;
 }
 
-function restTopUp() {
-  const amount = (Math.random() * 500 + 100).toFixed(2);
+function soapGetPaymentById() {
+  if (!lastPaymentId) return soapProcessPayment(SEED_USER_ID, SEED_MERCHANT_ID);
+
+  const body = `<pay:GetPaymentByIdRequest>
+    <pay:id>${lastPaymentId}</pay:id>
+  </pay:GetPaymentByIdRequest>`;
 
   const start = Date.now();
-  const res = http.post(`${BASE_URL}/v1/payments/wallets/${walletId}/topup`, amount, {
-    headers: { 'Content-Type': 'application/json' },
-    tags: { name: 'top_up' }
-  });
-
-  topUpLatency.add(Date.now() - start);
+  const res = sendSoap(body, { name: 'soap_get_payment' });
+  soapGetPaymentLatency.add(Date.now() - start);
   errorRate.add(res.status !== 200);
-
-  check(res, {
-    'top up status 200': r => r.status === 200,
-  });
+  check(res, { 'soap get payment ok': r => r.status === 200 });
 }
 
-function restSearch() {
+function soapListUserPayments(userId) {
+  const body = `<pay:ListUserPaymentsRequest>
+    <pay:userId>${userId}</pay:userId>
+    <pay:status>SUCCESS</pay:status>
+    <pay:limit>10</pay:limit>
+  </pay:ListUserPaymentsRequest>`;
+
   const start = Date.now();
-  const res = http.get(`${BASE_URL}/v1/payments/search?minAmount=1&maxAmount=500&status=SUCCESS&page=0&size=10`, {
-    tags: { name: 'search_payments' }
-  });
-
-  searchLatency.add(Date.now() - start);
+  const res = sendSoap(body, { name: 'soap_list_payments' });
+  soapListPaymentsLatency.add(Date.now() - start);
   errorRate.add(res.status !== 200);
-
-  check(res, {
-    'search status 200': r => r.status === 200,
-  });
+  check(res, { 'soap list payments ok': r => r.status === 200 });
 }
 
-function restGetPayment() {
-  const res = http.get(`${BASE_URL}/v1/payments/user/${userId}?status=SUCCESS&limit=10`, {
-    tags: { name: 'get_user_payments' }
-  });
+function soapSearchPayments() {
+  const body = `<pay:SearchPaymentsRequest>
+    <pay:minAmount>1</pay:minAmount>
+    <pay:maxAmount>500</pay:maxAmount>
+    <pay:status>SUCCESS</pay:status>
+    <pay:page>0</pay:page>
+    <pay:size>10</pay:size>
+  </pay:SearchPaymentsRequest>`;
 
+  const start = Date.now();
+  const res = sendSoap(body, { name: 'soap_search' });
+  soapSearchLatency.add(Date.now() - start);
   errorRate.add(res.status !== 200);
-  check(res, {
-    'get payments status 200': r => r.status === 200,
-  });
+  check(res, { 'soap search ok': r => r.status === 200 });
 }
 
-export function teardown(data) {
-  teardownTestEntities(BASE_URL, data);
+function soapGetPaymentSummary() {
+  const body = `<pay:GetPaymentSummaryRequest>
+    <pay:startDate>2020-01-01T00:00:00Z</pay:startDate>
+    <pay:endDate>2030-12-31T23:59:59Z</pay:endDate>
+  </pay:GetPaymentSummaryRequest>`;
+
+  const start = Date.now();
+  const res = sendSoap(body, { name: 'soap_summary' });
+  soapSummaryLatency.add(Date.now() - start);
+  errorRate.add(res.status !== 200);
+  check(res, { 'soap summary ok': r => r.status === 200 });
+}
+
+function soapRefundPayment() {
+  if (!lastPaymentId) return soapProcessPayment(SEED_USER_ID, SEED_MERCHANT_ID);
+
+  const body = `<pay:RefundPaymentRequest>
+    <pay:id>${lastPaymentId}</pay:id>
+  </pay:RefundPaymentRequest>`;
+
+  const start = Date.now();
+  const res = sendSoap(body, { name: 'soap_refund' });
+  soapRefundLatency.add(Date.now() - start);
+  errorRate.add(res.status !== 200);
+  check(res, { 'soap refund ok': r => r.status === 200 });
 }
 
 export function handleSummary(data) {
@@ -239,11 +182,11 @@ export function handleSummary(data) {
 function textSummary(data) {
   return `
 ============================================================
-  K6 LOAD TEST RESULTS - Payment Service
+  K6 LOAD TEST RESULTS - Payment Service (SOAP Only)
 ============================================================
 Target VUs: ${TARGET_VUS}
 Duration: ${TEST_DURATION}
-Base URL: ${BASE_URL}
+SOAP URL: ${SOAP_URL}
 
 HTTP Metrics:
   Total Requests:      ${data.metrics.http_reqs?.values?.count || 0}
@@ -256,11 +199,12 @@ HTTP Metrics:
   Max:                 ${(data.metrics.http_req_duration?.values?.max || 0).toFixed(2)}ms
 
 Custom Metrics:
-  Wallet Transfer P95: ${(data.metrics.wallet_transfer_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  Payment Create P95:  ${(data.metrics.payment_create_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  SOAP Payment P95:    ${(data.metrics.soap_process_payment_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  Top Up P95:          ${(data.metrics.top_up_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
-  Search P95:          ${(data.metrics.search_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Process Payment P95: ${(data.metrics.soap_process_payment_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Get Payment P95:     ${(data.metrics.soap_get_payment_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  List Payments P95:   ${(data.metrics.soap_list_payments_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Search P95:          ${(data.metrics.soap_search_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Summary P95:         ${(data.metrics.soap_summary_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
+  Refund P95:          ${(data.metrics.soap_refund_latency?.values?.['p(95)'] || 0).toFixed(2)}ms
 
 Peak VUs:              ${data.metrics.vus_max?.values?.max || 0}
 Peak Iterations/s:     ${(data.metrics.iterations?.values?.rate || 0).toFixed(2)}
