@@ -12,6 +12,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -45,12 +48,12 @@ public class DataSeeder implements CommandLineRunner {
         log.info("Seeding test data for k6 load tests...");
 
         User user = new User(SEED_USER_ID, "k6-loadtest@k6.io", "K6 LoadTest User", "ACTIVE");
-        userRepo.save(user);
+        User savedUser = userRepo.save(user); // Save user first and use the managed instance
 
         Merchant merchant = new Merchant(SEED_MERCHANT_ID, "K6 LoadTest Merchant", "k6-api-key-loadtest");
         merchantRepo.save(merchant);
 
-        Wallet wallet = new Wallet(SEED_WALLET_ID, user, new BigDecimal("9999999.9900"), "USD");
+        Wallet wallet = new Wallet(SEED_WALLET_ID, savedUser, new BigDecimal("9999999.9900"), "USD");
         walletRepo.save(wallet);
 
         log.info("Seed data created: user={}, merchant={}, wallet={}", SEED_USER_ID, SEED_MERCHANT_ID, SEED_WALLET_ID);
